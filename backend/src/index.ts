@@ -10,8 +10,8 @@ async function main() {
         await prisma.$connect();
         console.log('✅ Database connected');
 
-        app.listen(PORT, () => {
-            console.log(`🎬 Pocket Productions API running on http://localhost:${PORT}`);
+        app.listen(PORT, '0.0.0.0', () => {
+            console.log(`🎬 Pocket Productions API running on port ${PORT}`);
             console.log(`📋 Environment: ${env.NODE_ENV}`);
             console.log(`🔐 Auth bypass: ${env.BYPASS_AUTH ? 'ENABLED (dev mode)' : 'disabled'}`);
             console.log(`🤖 Claude AI: ${env.ANTHROPIC_API_KEY ? 'configured' : 'NOT configured'}`);

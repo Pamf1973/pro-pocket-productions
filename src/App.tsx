@@ -1,5 +1,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
+// Landing
+import LandingPage from './pages/LandingPage';
+
 // Auth
 import LoginScreen from './pages/LoginScreen';
 
@@ -38,7 +41,7 @@ export default function App() {
         <Route path="/dashboard" element={<DesktopDashboard />} />
 
         {/* Landing / PWA install */}
-        <Route path="/" element={<PWAInstallScreen />} />
+        <Route path="/" element={<LandingPage />} />
 
         {/* Mobile pages */}
         <Route path="/home" element={<HomeScreen />} />

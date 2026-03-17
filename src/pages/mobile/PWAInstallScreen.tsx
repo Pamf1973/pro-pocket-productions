@@ -1,35 +1,24 @@
 import { useNavigate } from 'react-router-dom';
+import QRCode from 'react-qr-code';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 
 const APP_URL = window.location.origin;
 
-function QRPlaceholder() {
-  // Simple SVG QR-code-like graphic directing user to the site URL
+function AppQRCode() {
   return (
     <div
       className="mx-auto rounded-2xl p-4 flex flex-col items-center gap-3"
-      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', width: 180 }}
+      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', width: 196 }}
     >
-      {/* Simplified QR pattern */}
-      <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
-        {/* Corners */}
-        <rect x="4" y="4" width="32" height="32" rx="4" fill="white" />
-        <rect x="10" y="10" width="20" height="20" rx="2" fill="#080c14" />
-        <rect x="14" y="14" width="12" height="12" rx="1" fill="white" />
-
-        <rect x="84" y="4" width="32" height="32" rx="4" fill="white" />
-        <rect x="90" y="10" width="20" height="20" rx="2" fill="#080c14" />
-        <rect x="94" y="14" width="12" height="12" rx="1" fill="white" />
-
-        <rect x="4" y="84" width="32" height="32" rx="4" fill="white" />
-        <rect x="10" y="90" width="20" height="20" rx="2" fill="#080c14" />
-        <rect x="14" y="94" width="12" height="12" rx="1" fill="white" />
-
-        {/* Data modules */}
-        {[44,52,60,68,76].map((x) => [44,52,60,68,76].map((y) => (
-          Math.sin(x * y) > 0 ? <rect key={`${x}-${y}`} x={x} y={y} width="6" height="6" rx="1" fill="white" /> : null
-        )))}
-      </svg>
+      <div className="rounded-xl overflow-hidden p-2" style={{ background: '#ffffff' }}>
+        <QRCode
+          value={APP_URL}
+          size={148}
+          bgColor="#ffffff"
+          fgColor="#080c14"
+          level="M"
+        />
+      </div>
       <p className="text-[10px] text-center font-mono break-all" style={{ color: 'rgba(255,255,255,0.5)' }}>
         {APP_URL}
       </p>
@@ -95,7 +84,7 @@ export default function PWAInstallScreen() {
             </p>
           </div>
 
-          <QRPlaceholder />
+          <AppQRCode />
 
           <p className="text-xs font-mono" style={{ color: '#8E8E93' }}>{APP_URL}</p>
 

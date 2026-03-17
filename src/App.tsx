@@ -9,6 +9,7 @@ import SignUpScreen from './pages/SignUpScreen';
 import ProtectedRoute from './components/ProtectedRoute';
 import DeviceRoute from './components/DeviceRoute';
 import UpdateBanner from './components/UpdateBanner';
+import RememberDevicePrompt from './components/RememberDevicePrompt';
 
 // Mobile pages
 import MobileDashboard from './pages/mobile/MobileDashboard';
@@ -39,6 +40,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <UpdateBanner />
+      <RememberDevicePrompt />
       <Routes>
         {/* Auth */}
         <Route path="/login" element={<LoginScreen />} />

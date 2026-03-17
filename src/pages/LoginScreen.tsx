@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { signIn } from '../utils/auth';
 
 export default function LoginScreen() {
   const navigate = useNavigate();
@@ -9,6 +10,7 @@ export default function LoginScreen() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    signIn(email, password);
     navigate('/dashboard');
   };
 

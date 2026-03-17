@@ -5,6 +5,7 @@ import LandingPage from './pages/LandingPage';
 
 // Auth
 import LoginScreen from './pages/LoginScreen';
+import ProtectedRoute from './components/ProtectedRoute';
 
 // Mobile pages
 import HomeScreen from './pages/mobile/HomeScreen';
@@ -37,8 +38,8 @@ export default function App() {
         {/* Auth */}
         <Route path="/login" element={<LoginScreen />} />
 
-        {/* Desktop */}
-        <Route path="/dashboard" element={<DesktopDashboard />} />
+        {/* Desktop (auth-gated) */}
+        <Route path="/dashboard" element={<ProtectedRoute><DesktopDashboard /></ProtectedRoute>} />
 
         {/* Landing / PWA install */}
         <Route path="/" element={<LandingPage />} />
@@ -55,16 +56,16 @@ export default function App() {
         <Route path="/crew" element={<CrewOpsScreen />} />
         <Route path="/install" element={<PWAInstallScreen />} />
 
-        {/* Desktop pages */}
-        <Route path="/assets" element={<DesktopAssets />} />
-        <Route path="/budgets" element={<DesktopBudgets />} />
-        <Route path="/calendar-desktop" element={<DesktopCalendar />} />
-        <Route path="/locations-desktop" element={<DesktopLocations />} />
-        <Route path="/new-project-desktop" element={<DesktopNewProject />} />
-        <Route path="/projects-desktop" element={<DesktopProjects />} />
-        <Route path="/storyboard-desktop" element={<DesktopStoryboard />} />
-        <Route path="/team-desktop" element={<DesktopTeam />} />
-        <Route path="/settings-desktop" element={<DesktopSettings />} />
+        {/* Desktop pages (auth-gated) */}
+        <Route path="/assets" element={<ProtectedRoute><DesktopAssets /></ProtectedRoute>} />
+        <Route path="/budgets" element={<ProtectedRoute><DesktopBudgets /></ProtectedRoute>} />
+        <Route path="/calendar-desktop" element={<ProtectedRoute><DesktopCalendar /></ProtectedRoute>} />
+        <Route path="/locations-desktop" element={<ProtectedRoute><DesktopLocations /></ProtectedRoute>} />
+        <Route path="/new-project-desktop" element={<ProtectedRoute><DesktopNewProject /></ProtectedRoute>} />
+        <Route path="/projects-desktop" element={<ProtectedRoute><DesktopProjects /></ProtectedRoute>} />
+        <Route path="/storyboard-desktop" element={<ProtectedRoute><DesktopStoryboard /></ProtectedRoute>} />
+        <Route path="/team-desktop" element={<ProtectedRoute><DesktopTeam /></ProtectedRoute>} />
+        <Route path="/settings-desktop" element={<ProtectedRoute><DesktopSettings /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   );

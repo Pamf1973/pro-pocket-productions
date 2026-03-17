@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { analyzeScript, formatCurrency, ScriptAnalysis } from '../../utils/scriptAnalyzer';
 
 const SIDEBAR_NAV = [
   { label: 'Dashboard', icon: 'grid_view', route: '/dashboard' },
@@ -54,6 +55,26 @@ export default function DesktopBudgets() {
   const navigate = useNavigate();
   const [sagEnabled, setSagEnabled] = useState(true);
   const [aiQuery, setAiQuery] = useState('');
+  const [scriptAnalysis, setScriptAnalysis] = useState<ScriptAnalysis | null>(null);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      const analysis = analyzeScript(text, file.name);
+      setScriptAnalysis(analysis);
+      setImporting(false);
+    };
+    reader.onerror = () => setImporting(false);
+    reader.readAsText(file);
+    // Reset input so the same file can be re-imported
+    e.target.value = '';
+  };
 
   return (
     <div className="flex min-h-screen bg-slate-950 text-slate-100 font-display overflow-hidden">
@@ -208,18 +229,70 @@ export default function DesktopBudgets() {
                 Analyze
               </button>
               {/* Screenplay upload */}
-              <button className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 text-sm font-medium px-3 py-2 rounded-lg transition-colors">
-                <span className="material-symbols-outlined text-[16px]">upload_file</span>
-                Import Screenplay
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".txt,.pdf,.fdx,.fountain"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={importing}
+                className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 text-sm font-medium px-3 py-2 rounded-lg transition-colors disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[16px]">{importing ? 'hourglass_top' : 'upload_file'}</span>
+                {importing ? 'Analysing…' : 'Import Screenplay'}
               </button>
             </div>
           </div>
 
+          {/* Script analysis banner */}
+          {scriptAnalysis && (
+            <div className="rounded-xl bg-gradient-to-r from-green-900/30 to-slate-900/40 border border-green-500/20 p-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-green-400 mb-1">Screenplay Analysed</p>
+                  <p className="text-base font-bold text-white">{scriptAnalysis.title}</p>
+                  <p className="text-xs text-slate-400 mt-1">{scriptAnalysis.summary}</p>
+                </div>
+                <div className="flex items-center gap-4 text-center ml-6 shrink-0">
+                  <div>
+                    <p className="text-xl font-black text-white">{scriptAnalysis.pageCount}</p>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-widest">Pages</p>
+                  </div>
+                  <div>
+                    <p className="text-xl font-black text-white">{scriptAnalysis.sceneCount}</p>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-widest">Scenes</p>
+                  </div>
+                  <div>
+                    <p className="text-xl font-black text-white">{scriptAnalysis.estimatedDays}</p>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-widest">Shoot Days</p>
+                  </div>
+                  <div>
+                    <p className="text-xl font-black text-green-400">{formatCurrency(scriptAnalysis.totalEstimate)}</p>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-widest">Est. Total</p>
+                  </div>
+                  <button
+                    onClick={() => setScriptAnalysis(null)}
+                    className="ml-2 text-slate-500 hover:text-white transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">close</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Budget table */}
           <div className="rounded-xl bg-slate-900 border border-white/5 overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-white/5">
-              <h2 className="text-sm font-bold text-white">Line Items — Day 42</h2>
-              <span className="text-xs text-slate-400">March 9, 2026</span>
+              <h2 className="text-sm font-bold text-white">
+                {scriptAnalysis ? `Generated Budget — ${scriptAnalysis.title}` : 'Line Items — Day 42'}
+              </h2>
+              <span className="text-xs text-slate-400">
+                {scriptAnalysis ? `${scriptAnalysis.lineItems.length} line items` : 'March 9, 2026'}
+              </span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -227,37 +300,58 @@ export default function DesktopBudgets() {
                   <tr className="border-b border-white/5">
                     <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Category</th>
                     <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Description</th>
-                    <th className="text-right px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Estimated</th>
-                    <th className="text-right px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Actual</th>
-                    <th className="text-right px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Variance</th>
+                    <th className="text-right px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">{scriptAnalysis ? 'Qty' : 'Estimated'}</th>
+                    <th className="text-right px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">{scriptAnalysis ? 'Rate' : 'Actual'}</th>
+                    <th className="text-right px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">{scriptAnalysis ? 'Total' : 'Variance'}</th>
                     <th className="px-4 py-3" />
                   </tr>
                 </thead>
                 <tbody>
-                  {LINE_ITEMS.map((item, i) => (
-                    <tr key={i} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-                      <td className="px-4 py-3">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 bg-white/5 px-2 py-0.5 rounded">
-                          {item.category}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-slate-300">{item.description}</td>
-                      <td className="px-4 py-3 text-right font-mono text-slate-400">{item.estimated}</td>
-                      <td className="px-4 py-3 text-right font-mono text-white font-medium">{item.actual}</td>
-                      <td className={`px-4 py-3 text-right font-mono font-bold ${
-                        item.varType === 'over' ? 'text-red-400' : item.varType === 'under' ? 'text-green-400' : 'text-slate-500'
-                      }`}>
-                        {item.variance}
-                      </td>
-                      <td className="px-4 py-3">
-                        {item.flag && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-400/10 text-amber-400 border border-amber-400/20">
-                            {item.flag}
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                  {scriptAnalysis
+                    ? scriptAnalysis.lineItems.map((item, i) => (
+                        <tr key={i} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                          <td className="px-4 py-3">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 bg-white/5 px-2 py-0.5 rounded">
+                              {item.category}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-slate-300">{item.description}</td>
+                          <td className="px-4 py-3 text-right font-mono text-slate-400">{item.qty}</td>
+                          <td className="px-4 py-3 text-right font-mono text-slate-400">{item.rate}</td>
+                          <td className="px-4 py-3 text-right font-mono text-white font-medium">{formatCurrency(item.total)}</td>
+                          <td className="px-4 py-3">
+                            {item.flag && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-400/10 text-amber-400 border border-amber-400/20">
+                                {item.flag}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    : LINE_ITEMS.map((item, i) => (
+                        <tr key={i} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                          <td className="px-4 py-3">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 bg-white/5 px-2 py-0.5 rounded">
+                              {item.category}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-slate-300">{item.description}</td>
+                          <td className="px-4 py-3 text-right font-mono text-slate-400">{item.estimated}</td>
+                          <td className="px-4 py-3 text-right font-mono text-white font-medium">{item.actual}</td>
+                          <td className={`px-4 py-3 text-right font-mono font-bold ${
+                            item.varType === 'over' ? 'text-red-400' : item.varType === 'under' ? 'text-green-400' : 'text-slate-500'
+                          }`}>
+                            {item.variance}
+                          </td>
+                          <td className="px-4 py-3">
+                            {item.flag && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-400/10 text-amber-400 border border-amber-400/20">
+                                {item.flag}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
                 </tbody>
               </table>
             </div>
@@ -265,12 +359,24 @@ export default function DesktopBudgets() {
 
           {/* Summary cards */}
           <div className="grid grid-cols-4 gap-4">
-            {SUMMARY_CARDS.map((card) => (
-              <div key={card.label} className="rounded-xl p-4 bg-slate-900 border border-white/5">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">{card.label}</p>
-                <p className={`text-2xl font-black ${card.color}`}>{card.value}</p>
-              </div>
-            ))}
+            {scriptAnalysis
+              ? [
+                  { label: 'Total Estimate', value: formatCurrency(scriptAnalysis.totalEstimate), color: 'text-white' },
+                  { label: 'Shoot Days', value: `${scriptAnalysis.estimatedDays} days`, color: 'text-blue-400' },
+                  { label: 'Scenes', value: scriptAnalysis.sceneCount.toString(), color: 'text-green-400' },
+                  { label: 'Locations', value: scriptAnalysis.locations.length.toString(), color: 'text-amber-400' },
+                ].map((card) => (
+                  <div key={card.label} className="rounded-xl p-4 bg-slate-900 border border-white/5">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">{card.label}</p>
+                    <p className={`text-2xl font-black ${card.color}`}>{card.value}</p>
+                  </div>
+                ))
+              : SUMMARY_CARDS.map((card) => (
+                  <div key={card.label} className="rounded-xl p-4 bg-slate-900 border border-white/5">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">{card.label}</p>
+                    <p className={`text-2xl font-black ${card.color}`}>{card.value}</p>
+                  </div>
+                ))}
           </div>
         </main>
       </div>

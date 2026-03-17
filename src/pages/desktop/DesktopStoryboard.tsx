@@ -1,6 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@clerk/clerk-react';
 import DesktopLayout from '../../components/DesktopLayout';
+import { apiPost } from '../../utils/api';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Frame {
   id: number;
@@ -17,9 +21,23 @@ interface Frame {
   lighting?: string;
   frameRate?: string;
   vfx?: string;
+  sceneHeading?: string;
+  mood?: string;
 }
 
-const FRAMES: Frame[] = [
+interface AiShot {
+  frameLabel: string;
+  sceneHeading: string;
+  shotType: string;
+  cameraMovement: string;
+  lighting: string;
+  description: string;
+  mood: string;
+}
+
+// ─── Seed data ────────────────────────────────────────────────────────────────
+
+const SEED_FRAMES: Frame[] = [
   {
     id: 1,
     label: 'FRAME 1',
@@ -68,10 +86,79 @@ The smoke mingles with the steam rising from a nearby vent.`;
 
 const COLOR_PALETTE = ['#0a192f', '#ff2d55', '#1a1a1a', '#008080', '#ffbf00'];
 
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export default function DesktopStoryboard() {
   const navigate = useNavigate();
+  const { getToken } = useAuth();
+
+  const [frames, setFrames] = useState<Frame[]>(SEED_FRAMES);
   const [script, setScript] = useState(SCRIPT_TEXT);
   const [activeMode, setActiveMode] = useState<'ai' | 'upload' | 'blank'>('ai');
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Pre-fill script textarea from localStorage if available
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('pp_last_script_analysis');
+      if (saved) {
+        const analysis = JSON.parse(saved);
+        if (analysis?.title && analysis?.summary) {
+          setScript(`${analysis.title}\n\n${analysis.summary}`);
+        }
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }, []);
+
+  // ── Generate shots ─────────────────────────────────────────────────────────
+
+  const handleGenerateShots = async () => {
+    if (!script.trim()) return;
+    setGenerating(true);
+    setError(null);
+    try {
+      const token = await getToken();
+      if (!token) throw new Error('Not authenticated');
+      const { result } = await apiPost<{ result: { storyboardShots: AiShot[] } }>(
+        token,
+        '/api/ai/analyze-script',
+        { scriptText: script }
+      );
+
+      if (!result.storyboardShots || result.storyboardShots.length === 0) {
+        throw new Error('No storyboard shots were generated. Try adding more scene description.');
+      }
+
+      const newFrames: Frame[] = result.storyboardShots.map((shot, i) => ({
+        id: i + 1,
+        label: shot.frameLabel || `FRAME ${i + 1}`,
+        hasContent: true,
+        sceneHeading: shot.sceneHeading,
+        description: shot.description,
+        shotType: shot.shotType,
+        cameraMovement: shot.cameraMovement,
+        lighting: shot.lighting,
+        mood: shot.mood,
+        camera: 'Cam 1',
+        shotSize: 'WS',
+        equipment: 'Steadicam',
+        lens: 'Standard',
+        frameRate: '24 fps',
+        vfx: '—',
+      }));
+
+      setFrames(newFrames);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate shots');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
     <DesktopLayout
@@ -99,9 +186,22 @@ export default function DesktopStoryboard() {
                 <span className="material-symbols-outlined text-lg">picture_as_pdf</span>
                 Export PDF
               </button>
-              <button className="flex items-center gap-2 px-6 h-10 rounded-xl bg-blue-600 text-white text-sm font-bold shadow-lg shadow-blue-600/25 hover:scale-[1.02] transition-all">
-                <span className="material-symbols-outlined text-lg">bolt</span>
-                Generate Shots
+              <button
+                onClick={handleGenerateShots}
+                disabled={generating || !script.trim()}
+                className="flex items-center gap-2 px-6 h-10 rounded-xl bg-blue-600 text-white text-sm font-bold shadow-lg shadow-blue-600/25 hover:scale-[1.02] disabled:opacity-50 disabled:scale-100 transition-all"
+              >
+                {generating ? (
+                  <>
+                    <span className="material-symbols-outlined text-lg animate-spin">progress_activity</span>
+                    Generating…
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-lg">bolt</span>
+                    Generate Shots
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -109,15 +209,22 @@ export default function DesktopStoryboard() {
           {/* Editor + Shot grid */}
           <div className="flex flex-1 overflow-hidden">
             {/* Script panel */}
-            <section className="w-[380px] shrink-0 border-r border-blue-600/10 flex flex-col p-6 overflow-y-auto" style={{ background: 'rgba(30,41,59,0.3)', backdropFilter: 'blur(12px)' }}>
+            <section
+              className="w-[380px] shrink-0 border-r border-blue-600/10 flex flex-col p-6 overflow-y-auto"
+              style={{ background: 'rgba(30,41,59,0.3)', backdropFilter: 'blur(12px)' }}
+            >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-bold text-slate-200 flex items-center gap-2">
                   <span className="material-symbols-outlined text-blue-400 text-lg">description</span>
                   Script Editor
                 </h3>
                 <div className="flex gap-1">
-                  <button className="p-1 text-slate-400 hover:text-blue-400 transition-colors"><span className="material-symbols-outlined text-base">undo</span></button>
-                  <button className="p-1 text-slate-400 hover:text-blue-400 transition-colors"><span className="material-symbols-outlined text-base">redo</span></button>
+                  <button className="p-1 text-slate-400 hover:text-blue-400 transition-colors">
+                    <span className="material-symbols-outlined text-base">undo</span>
+                  </button>
+                  <button className="p-1 text-slate-400 hover:text-blue-400 transition-colors">
+                    <span className="material-symbols-outlined text-base">redo</span>
+                  </button>
                 </div>
               </div>
 
@@ -140,6 +247,14 @@ export default function DesktopStoryboard() {
                   <span className="text-[10px] font-bold text-blue-400/40 uppercase">AI Ready</span>
                 </div>
               </div>
+
+              {/* Error banner */}
+              {error && (
+                <div className="mb-4 rounded-lg bg-red-900/20 border border-red-500/20 p-3 flex items-start gap-2">
+                  <span className="material-symbols-outlined text-red-400 text-[16px] shrink-0 mt-0.5">error</span>
+                  <p className="text-xs text-red-300">{error}</p>
+                </div>
+              )}
 
               {/* Scene analysis */}
               <div className="p-4 rounded-xl border border-blue-600/10">
@@ -189,7 +304,9 @@ export default function DesktopStoryboard() {
 
               <div className="flex items-center gap-3 mb-4">
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Generated Storyboard</p>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-600/20 text-blue-400 border border-blue-600/30">4 SHOTS</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-600/20 text-blue-400 border border-blue-600/30">
+                  {frames.length} SHOTS
+                </span>
                 <div className="ml-auto">
                   <button className="flex items-center gap-1.5 text-xs font-bold text-slate-400 border border-white/10 px-3 py-1.5 rounded-lg hover:bg-white/5">
                     Grid View
@@ -198,9 +315,17 @@ export default function DesktopStoryboard() {
                 </div>
               </div>
 
+              {/* Generating overlay hint */}
+              {generating && (
+                <div className="mb-4 rounded-xl bg-blue-900/20 border border-blue-500/20 p-4 flex items-center gap-3">
+                  <span className="material-symbols-outlined text-blue-400 animate-spin">progress_activity</span>
+                  <p className="text-sm text-blue-300">Claude is generating storyboard shots from your script…</p>
+                </div>
+              )}
+
               {/* Frame cards */}
               <div className="grid grid-cols-3 gap-4">
-                {FRAMES.map((frame) => (
+                {frames.map((frame) => (
                   <div
                     key={frame.id}
                     className="rounded-xl border border-white/10 overflow-hidden"
@@ -208,14 +333,29 @@ export default function DesktopStoryboard() {
                   >
                     <div className="p-3 bg-slate-800/50">
                       <p className="text-[10px] font-black text-white uppercase tracking-widest">{frame.label}</p>
+                      {frame.sceneHeading && (
+                        <p className="text-[9px] text-blue-400 mt-0.5 truncate">{frame.sceneHeading}</p>
+                      )}
                     </div>
+
                     {frame.hasContent ? (
                       <>
-                        <div className="h-32 overflow-hidden">
-                          <img src={frame.imgSrc} alt={frame.label} className="w-full h-full object-cover" />
-                        </div>
+                        {/* AI-generated frames show a scene heading placeholder instead of an image */}
+                        {frame.sceneHeading && !frame.imgSrc ? (
+                          <div className="h-32 bg-slate-800/60 flex flex-col items-center justify-center gap-1 px-3">
+                            <span className="material-symbols-outlined text-slate-600 text-3xl">movie</span>
+                            <p className="text-[10px] text-slate-500 text-center font-medium leading-snug">{frame.sceneHeading}</p>
+                            {frame.mood && (
+                              <span className="text-[9px] text-blue-500 font-bold uppercase tracking-widest">{frame.mood}</span>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="h-32 overflow-hidden">
+                            <img src={frame.imgSrc} alt={frame.label} className="w-full h-full object-cover" />
+                          </div>
+                        )}
                         <div className="p-3 space-y-2 text-[10px]">
-                          <p className="text-slate-300 text-xs">{frame.description}</p>
+                          <p className="text-slate-300 text-xs line-clamp-2">{frame.description}</p>
                           <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
                             {[
                               { label: 'CAMERA', value: frame.camera },
@@ -229,7 +369,7 @@ export default function DesktopStoryboard() {
                             ].map(({ label, value }) => (
                               <div key={label}>
                                 <p className="text-[9px] text-slate-600 uppercase tracking-widest">{label}</p>
-                                <p className="font-bold text-slate-200">{value}</p>
+                                <p className="font-bold text-slate-200 truncate">{value || '—'}</p>
                               </div>
                             ))}
                           </div>
@@ -242,7 +382,9 @@ export default function DesktopStoryboard() {
                           {['CAMERA', 'SHOT SIZE', 'SHOT TYPE', 'CAMERA MOVEMENT', 'EQUIPMENT', 'LIGHTING', 'FRAME RATE', 'VFX'].map((label) => (
                             <div key={label}>
                               <p className="text-[9px] text-slate-600 uppercase tracking-widest">{label}</p>
-                              <p className="font-bold text-slate-500">{label.charAt(0) + label.slice(1).toLowerCase().replace('_', ' ')}</p>
+                              <p className="font-bold text-slate-500">
+                                {label.charAt(0) + label.slice(1).toLowerCase().replace('_', ' ')}
+                              </p>
                             </div>
                           ))}
                         </div>

@@ -66,4 +66,43 @@ router.post('/location-match', async (req: Request, res: Response, next: NextFun
     } catch (err) { next(err); }
 });
 
+// POST /api/ai/analyze-script — parse a screenplay and return full production breakdown
+router.post('/analyze-script', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const Schema = z.object({
+            scriptText: z.string().min(50),
+        });
+        const { scriptText } = Schema.parse(req.body);
+        const result = await claudeAIService.analyzeScript(scriptText);
+        res.json({ result });
+    } catch (err) {
+        next(err);
+    }
+});
+
+// POST /api/ai/budget-query — answer a budget question with AI suggestions
+router.post('/budget-query', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const Schema = z.object({
+            question: z.string().min(3),
+            lineItems: z.array(
+                z.object({
+                    category: z.string(),
+                    description: z.string(),
+                    qty: z.number(),
+                    rate: z.number(),
+                    total: z.number(),
+                })
+            ).default([]),
+            totalBudget: z.number().optional(),
+            sagEnabled: z.boolean().optional(),
+        });
+        const params = Schema.parse(req.body);
+        const result = await claudeAIService.queryBudget(params);
+        res.json({ result });
+    } catch (err) {
+        next(err);
+    }
+});
+
 export default router;

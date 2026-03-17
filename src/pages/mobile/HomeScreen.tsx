@@ -215,7 +215,7 @@ export default function HomeScreen() {
             <span className="material-symbols-outlined">
               {id === 'fleet' ? 'directions_boat' : 'group'}
             </span>
-            <span className="text-[10px] font-bold uppercase tracking-tighter capitalize">{id}</span>
+            <span className="text-[10px] font-bold uppercase tracking-tighter">{id}</span>
             {id === 'crew' && (
               <div className="absolute -top-1 right-0 w-1.5 h-1.5 bg-primary rounded-full" />
             )}
@@ -240,7 +240,7 @@ export default function HomeScreen() {
             <span className="material-symbols-outlined">
               {id === 'missions' ? 'target' : 'terminal'}
             </span>
-            <span className="text-[10px] font-bold uppercase tracking-tighter capitalize">{id}</span>
+            <span className="text-[10px] font-bold uppercase tracking-tighter">{id}</span>
           </button>
         ))}
       </nav>

@@ -61,7 +61,7 @@ export default function RememberDevicePrompt() {
           Remember this device?
         </h2>
         <p className="text-sm text-slate-400 text-center mb-6 leading-relaxed">
-          Stay signed in as <span className="text-white font-bold">{name}</span> on this device for 30 days. You won't need to sign in again.
+          Stay signed in as <span className="text-white font-bold">{name}</span> on this device. You won't need to sign in again.
         </p>
 
         {/* User preview */}

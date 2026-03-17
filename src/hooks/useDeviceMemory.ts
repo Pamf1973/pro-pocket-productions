@@ -1,5 +1,5 @@
 const KEY = 'pp_trusted_device';
-const TRUST_DURATION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+const TRUST_DURATION_MS = 365 * 24 * 60 * 60 * 1000; // 1 year
 
 export interface DeviceMemory {
   userId: string;

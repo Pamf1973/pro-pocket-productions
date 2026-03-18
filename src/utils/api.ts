@@ -1,6 +1,6 @@
-// VITE_API_URL must be set in Vercel env vars to your Railway backend URL.
-// Falls back to relative path (Vercel proxy) if not set.
-const BASE = import.meta.env.VITE_API_URL ?? '';
+// Use relative paths so Vercel's edge proxies /api/* to Railway server-to-server.
+// No CORS headers needed — browser never touches Railway directly.
+const BASE = '';
 
 export async function apiPost<T>(token: string, path: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {

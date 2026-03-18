@@ -139,7 +139,8 @@ router.post('/analyze-and-save', async (req: Request, res: Response, next: NextF
             projectId: z.string(),
             scriptText: z.string().min(50),
         });
-        const { projectId, scriptText } = Schema.parse(req.body);
+        const Schema2 = Schema.extend({ replace: z.boolean().default(false) });
+        const { projectId, scriptText, replace } = Schema2.parse(req.body);
 
         // Verify project belongs to this user
         const project = await prisma.project.findFirst({
@@ -153,16 +154,13 @@ router.post('/analyze-and-save', async (req: Request, res: Response, next: NextF
         // Analyze with Claude
         const analysis = await claudeAIService.analyzeScript(scriptText);
 
-        // Clear previous AI-generated storyboard shots for this project
-        await prisma.storyboardShot.deleteMany({ where: { projectId, aiGenerated: true } });
-
-        // Clear previous budget line items for this project (AI-generated ones, identified by notes containing "aiGenerated")
-        await prisma.budgetLineItem.deleteMany({
-            where: {
-                projectId,
-                notes: { contains: '"aiGenerated":true' },
-            },
-        });
+        // Only clear previous AI data when the user explicitly chose "Replace"
+        if (replace) {
+            await prisma.storyboardShot.deleteMany({ where: { projectId, aiGenerated: true } });
+            await prisma.budgetLineItem.deleteMany({
+                where: { projectId, notes: { contains: '"aiGenerated":true' } },
+            });
+        }
 
         // Bulk-create budget line items
         let budgetCount = 0;

@@ -109,6 +109,7 @@ export default function DesktopBudgets() {
   const [aiResponse, setAiResponse] = useState<AiResponse | null>(null);
   const [importing, setImporting] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [pendingAnalysis, setPendingAnalysis] = useState<{ rows: BudgetRow[]; scriptText: string; analysis: ScriptAnalysis } | null>(null);
   const [sagEnabled, setSagEnabled] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -198,20 +199,46 @@ export default function DesktopBudgets() {
         { scriptText }
       );
       setScriptAnalysis(result);
-      if (result.budgetLineItems && result.budgetLineItems.length > 0) {
-        setLineItems(
-          result.budgetLineItems.map((item, i) => ({
-            ...item,
-            id: item.id ?? `ai_${Date.now()}_${i}`,
-          }))
-        );
-      }
-      // Persist for other pages
       localStorage.setItem('pp_last_script_analysis', JSON.stringify(result));
+
+      if (result.budgetLineItems && result.budgetLineItems.length > 0) {
+        const newRows = result.budgetLineItems.map((item, i) => ({
+          ...item,
+          id: item.id ?? `ai_${Date.now()}_${i}`,
+        }));
+        // If there are already items, ask the user what to do
+        if (lineItems.length > 0) {
+          setPendingAnalysis({ rows: newRows, scriptText, analysis: result });
+        } else {
+          // Nothing existing — just set directly
+          setLineItems(newRows);
+          if (currentProjectId) {
+            const t = await getToken();
+            if (t) await apiPost(t, '/api/ai/analyze-and-save', { projectId: currentProjectId, scriptText, replace: false });
+          }
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to analyse script');
     } finally {
       setImporting(false);
+    }
+  };
+
+  const handleMergeChoice = async (replace: boolean) => {
+    if (!pendingAnalysis) return;
+    const { rows, scriptText } = pendingAnalysis;
+    if (replace) {
+      setLineItems(rows);
+    } else {
+      setLineItems((prev) => [...prev, ...rows]);
+    }
+    setPendingAnalysis(null);
+    if (currentProjectId) {
+      try {
+        const token = await getToken();
+        if (token) await apiPost(token, '/api/ai/analyze-and-save', { projectId: currentProjectId, scriptText, replace });
+      } catch { /* non-fatal */ }
     }
   };
 
@@ -367,6 +394,41 @@ export default function DesktopBudgets() {
             {projectLoading && (
               <span className="material-symbols-outlined text-blue-400 text-[16px] animate-spin">progress_activity</span>
             )}
+          </div>
+        )}
+
+        {/* ── Merge / Replace dialog ── */}
+        {pendingAnalysis && (
+          <div className="rounded-xl bg-amber-900/20 border border-amber-500/30 p-5 flex items-start gap-4">
+            <span className="material-symbols-outlined text-amber-400 text-[28px] shrink-0 mt-0.5">merge</span>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-white mb-1">New script analysis ready — {pendingAnalysis.rows.length} line items</p>
+              <p className="text-xs text-slate-400 mb-4">
+                Your existing budget already has <span className="text-white font-bold">{lineItems.length} items</span>. Do you want to add the new items alongside the existing ones, or replace everything with the new analysis?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleMergeChoice(false)}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[16px]">add</span>
+                  Add to existing budget
+                </button>
+                <button
+                  onClick={() => handleMergeChoice(true)}
+                  className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[16px]">refresh</span>
+                  Replace with new analysis
+                </button>
+                <button
+                  onClick={() => setPendingAnalysis(null)}
+                  className="text-xs text-slate-500 hover:text-slate-300 ml-auto transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

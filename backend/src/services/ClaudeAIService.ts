@@ -461,7 +461,7 @@ Write a single DALL-E 3 image prompt (max 150 words) that captures this as a bla
             style: 'vivid',
         });
 
-        const url = imageResponse.data[0]?.url;
+        const url = (imageResponse.data ?? [])[0]?.url;
         if (!url) throw new Error('DALL-E 3 returned no image URL');
         return { url };
     }

@@ -1,6 +1,6 @@
-// Always use relative paths — Vercel proxies /api/* to Railway in production,
-// Vite proxies /api/* to localhost:4000 in development.
-const BASE = '';
+// VITE_API_URL must be set in Vercel env vars to your Railway backend URL.
+// Falls back to relative path (Vercel proxy) if not set.
+const BASE = import.meta.env.VITE_API_URL ?? '';
 
 export async function apiPost<T>(token: string, path: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {

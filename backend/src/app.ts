@@ -17,6 +17,7 @@ import colorPalettesRouter from './routes/colorPalettes';
 import aiRouter from './routes/ai';
 import uploadRouter from './routes/upload';
 import sagRatesRouter from './routes/sagRates';
+import parseRouter from './routes/parse';
 
 // Middleware
 import { authMiddleware } from './middleware/auth';
@@ -55,6 +56,7 @@ app.use('/api/storyboard', storyboardRouter);
 app.use('/api/color-palettes', colorPalettesRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/upload', uploadRouter);
+app.use('/api/parse', parseRouter);
 
 // ─── 404 Handler ─────────────────────────────────────────────────────────────
 app.use((_req, res) => {

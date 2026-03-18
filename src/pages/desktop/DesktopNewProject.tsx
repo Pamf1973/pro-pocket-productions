@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
 import DesktopLayout from '../../components/DesktopLayout';
 import { apiPost } from '../../utils/api';
+import { extractScriptText } from '../../utils/extractScriptText';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -95,9 +96,9 @@ export default function DesktopNewProject() {
     setScriptError(null);
     setScriptResult(null);
     try {
-      const scriptText = await file.text();
       const token = await getToken();
       if (!token) throw new Error('Not authenticated');
+      const scriptText = await extractScriptText(file, token);
       const { result } = await apiPost<{ result: ScriptAnalysis }>(
         token,
         '/api/ai/analyze-script',
@@ -340,10 +341,10 @@ export default function DesktopNewProject() {
                   <span className="material-symbols-outlined text-4xl text-slate-500">upload_file</span>
                   <div className="text-center">
                     <p className="text-sm font-bold text-slate-300">Drop your screenplay here</p>
-                    <p className="text-xs text-slate-500 mt-1">or click to browse — .txt, .fdx, .fountain</p>
+                    <p className="text-xs text-slate-500 mt-1">or click to browse — .txt, .fdx, .fountain, .pdf, .docx</p>
                   </div>
                 </div>
-                <input ref={fileInputRef} type="file" accept=".txt,.fdx,.fountain"
+                <input ref={fileInputRef} type="file" accept=".txt,.fdx,.fountain,.pdf,.docx"
                   className="hidden" onChange={handleFileInput} />
               </>
             )}

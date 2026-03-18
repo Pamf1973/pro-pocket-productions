@@ -20,3 +20,18 @@ export async function apiGet<T>(token: string, path: string): Promise<T> {
   if (!res.ok) throw new Error(`API error ${res.status}`);
   return res.json();
 }
+
+export async function apiPostFile<T>(token: string, path: string, formData: FormData): Promise<T> {
+  const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    // Do NOT set Content-Type — browser sets it automatically with boundary for multipart
+    body: formData,
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `API error ${res.status}`);
+  }
+  return res.json();
+}

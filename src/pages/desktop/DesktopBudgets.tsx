@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import DesktopLayout from '../../components/DesktopLayout';
 import { apiPost } from '../../utils/api';
+import { extractScriptText } from '../../utils/extractScriptText';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -110,9 +111,9 @@ export default function DesktopBudgets() {
     setImporting(true);
     setError(null);
     try {
-      const scriptText = await file.text();
       const token = await getToken();
       if (!token) throw new Error('Not authenticated');
+      const scriptText = await extractScriptText(file, token);
       const { result } = await apiPost<{ result: ScriptAnalysis }>(
         token,
         '/api/ai/analyze-script',
@@ -335,7 +336,7 @@ export default function DesktopBudgets() {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".txt,.fdx,.fountain,.pdf"
+              accept=".txt,.fdx,.fountain,.pdf,.docx"
               className="hidden"
               onChange={handleFileChange}
             />

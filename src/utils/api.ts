@@ -1,4 +1,6 @@
-const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
+// In production (Vercel), BASE is '' so calls go to /api/... which Vercel proxies to Railway.
+// In local dev, VITE_API_URL points to http://localhost:4000.
+const BASE = import.meta.env.VITE_API_URL || '';
 
 export async function apiPost<T>(token: string, path: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
@@ -22,11 +24,9 @@ export async function apiGet<T>(token: string, path: string): Promise<T> {
 }
 
 export async function apiPostFile<T>(token: string, path: string, formData: FormData): Promise<T> {
-  const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
-    // Do NOT set Content-Type — browser sets it automatically with boundary for multipart
     body: formData,
   });
   if (!res.ok) {

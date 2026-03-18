@@ -27,23 +27,9 @@ const app = express();
 
 // ─── Global Middleware ────────────────────────────────────────────────────────
 app.use(helmet());
-const allowedOrigins = [
-    'http://localhost:5173',
-    'http://localhost:4173',
-    'https://pocket-productions.vercel.app',
-    ...(env.FRONTEND_URL ? [env.FRONTEND_URL] : []),
-];
-app.use(cors({
-    origin: (origin, callback) => {
-        // Allow requests with no origin (mobile apps, curl, etc.)
-        if (!origin) return callback(null, true);
-        if (allowedOrigins.includes(origin)) return callback(null, true);
-        // Allow any vercel preview deployments for this project
-        if (/^https:\/\/pocket-productions(-[a-z0-9]+)?\.vercel\.app$/.test(origin)) return callback(null, true);
-        callback(new Error(`CORS: origin ${origin} not allowed`));
-    },
-    credentials: true,
-}));
+// Allow all origins — frontend is on Vercel, requests must pass through.
+// origin:true reflects the request origin back, satisfying credentials mode.
+app.use(cors({ origin: true, credentials: true }));
 app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));

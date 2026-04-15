@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { createError } from '../middleware/errorHandler';
+import { getProjectTier, tierAtLeast, ClearanceTier } from '../middleware/auth';
 
 const router = Router();
 
@@ -25,8 +26,18 @@ const CreateCharacterSchema = z.object({
 // GET /api/characters?projectId=xxx
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     try {
+        const projectId = req.query.projectId ? String(req.query.projectId) : null;
+        if (projectId) {
+            const tier = await getProjectTier(req.auth!.userId, projectId);
+            if (!tier) { res.status(403).json({ error: 'Forbidden' }); return; }
+            // Tier 3 and 4 — no access to character/story data
+            if (!tierAtLeast(tier, ClearanceTier.TIER_2_CREATIVE)) {
+                res.status(403).json({ error: 'Forbidden: insufficient clearance to view characters' });
+                return;
+            }
+        }
         const characters = await prisma.character.findMany({
-            where: req.query.projectId ? { projectId: String(req.query.projectId) } : {},
+            where: projectId ? { projectId } : {},
             include: {
                 person: true,
                 relationshipsFrom: { include: { toCharacter: true } },

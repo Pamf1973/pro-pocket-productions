@@ -18,6 +18,9 @@ import colorPalettesRouter from './routes/colorPalettes';
 import aiRouter from './routes/ai';
 import uploadRouter from './routes/upload';
 import sagRatesRouter from './routes/sagRates';
+import parseRouter from './routes/parse';
+import teamRouter from './routes/team';
+import usersRouter from './routes/users';
 
 // Middleware
 import { authMiddleware } from './middleware/auth';
@@ -26,16 +29,10 @@ import { errorHandler } from './middleware/errorHandler';
 const app = express();
 
 // ─── Global Middleware ────────────────────────────────────────────────────────
-app.use(helmet({
-    contentSecurityPolicy: false, // Disable for now to avoid PWA asset issues in dev
-}));
-app.use(cors({
-    origin: (origin, callback) => {
-        // Dynamically allow the requesting origin to support Vercel preview URLs and local dev
-        callback(null, origin || true);
-    },
-    credentials: true,
-}));
+app.use(helmet());
+// Allow all origins — frontend is on Vercel, requests must pass through.
+// origin:true reflects the request origin back, satisfying credentials mode.
+app.use(cors({ origin: true, credentials: true }));
 app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -51,6 +48,8 @@ app.get('/health', (_req, res) => {
 
 // ─── Public Routes (no auth) ──────────────────────────────────────────────────
 app.use('/api/sag-rates', sagRatesRouter);
+// Invite preview is public (crew needs to see invite details before logging in)
+app.use('/api/team/invites', teamRouter);
 
 // ─── Protected Routes (requires Clerk auth) ───────────────────────────────────
 app.use('/api', authMiddleware);
@@ -65,6 +64,9 @@ app.use('/api/storyboard', storyboardRouter);
 app.use('/api/color-palettes', colorPalettesRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/upload', uploadRouter);
+app.use('/api/parse', parseRouter);
+app.use('/api/projects', teamRouter);
+app.use('/api/users', usersRouter);
 
 // ─── 404 Handler ─────────────────────────────────────────────────────────────
 app.use((_req, res) => {

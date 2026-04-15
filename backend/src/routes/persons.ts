@@ -5,6 +5,13 @@ import { sagRateService } from '../services/SagRateService';
 import { budgetCalculationService } from '../services/BudgetCalculationService';
 import { unionToggleService } from '../services/UnionToggleService';
 import { createError } from '../middleware/errorHandler';
+import { getProjectTier, tierAtLeast, ClearanceTier } from '../middleware/auth';
+
+/** Strip sensitive financial fields for Tier 2 and below */
+function stripFinancials(person: Record<string, unknown>) {
+    const { negotiatedRate, phFringePct, phFringeAmount, belowSagMinimum, ...safe } = person;
+    return safe;
+}
 
 const router = Router();
 
@@ -28,11 +35,41 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { projectId } = req.query;
         if (!projectId) throw createError('projectId query param required', 400);
+
+        const tier = await getProjectTier(req.auth!.userId, String(projectId));
+        if (!tier) { res.status(403).json({ error: 'Forbidden' }); return; }
+
+        // Tier 4 (limited) — no access to crew list
+        if (!tierAtLeast(tier, ClearanceTier.TIER_3_DEPARTMENT)) {
+            res.status(403).json({ error: 'Forbidden: insufficient clearance to view crew' });
+            return;
+        }
+
         const persons = await prisma.person.findMany({
-            where: req.query.projectId ? { projectId: String(req.query.projectId) } : {},
+            where: { projectId: String(projectId) },
             include: { department: true, character: true },
             orderBy: { name: 'asc' },
         });
+
+        // Tier 3 — filter to their department only, no salaries
+        // Tier 2 — all crew but no salary figures
+        if (tier === ClearanceTier.TIER_3_DEPARTMENT) {
+            // Find the member to get their department
+            const member = await prisma.projectMember.findFirst({
+                where: { projectId: String(projectId), clerkUserId: req.auth!.userId, inviteStatus: 'ACCEPTED' },
+            });
+            const filtered = member?.department
+                ? persons.filter((p) => p.department?.name === member.department)
+                : [];
+            res.json(filtered.map((p) => stripFinancials(p as unknown as Record<string, unknown>)));
+            return;
+        }
+
+        if (tier === ClearanceTier.TIER_2_CREATIVE) {
+            res.json(persons.map((p) => stripFinancials(p as unknown as Record<string, unknown>)));
+            return;
+        }
+
         res.json(persons);
     } catch (err) { next(err); }
 });

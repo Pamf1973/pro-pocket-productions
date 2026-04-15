@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { unionToggleService } from '../services/UnionToggleService';
 import { createError } from '../middleware/errorHandler';
+import { getProjectTier, tierAtLeast, ClearanceTier } from '../middleware/auth';
 
 const router = Router();
 
@@ -12,6 +13,15 @@ router.get('/line-items', async (req: Request, res: Response, next: NextFunction
         const { projectId, category } = req.query;
         if (!projectId) throw createError('projectId required', 400);
 
+        const tier = await getProjectTier(req.auth!.userId, String(projectId));
+        if (!tier) { res.status(403).json({ error: 'Forbidden' }); return; }
+
+        // Tier 3 and 4 — no access to budget line items
+        if (!tierAtLeast(tier, ClearanceTier.TIER_2_CREATIVE)) {
+            res.status(403).json({ error: 'Forbidden: insufficient clearance to view budget' });
+            return;
+        }
+
         const lineItems = await prisma.budgetLineItem.findMany({
             where: {
                 projectId: String(projectId),
@@ -20,6 +30,16 @@ router.get('/line-items', async (req: Request, res: Response, next: NextFunction
             include: { person: true, location: true },
             orderBy: [{ category: 'asc' }, { description: 'asc' }],
         });
+
+        // Tier 2 — return summary only (no person rate details)
+        if (tier === ClearanceTier.TIER_2_CREATIVE) {
+            const summary = lineItems.map(({ baseAmount, phFringeAmount, mealPenaltiesTotal, perDiemTotal, otherAmount, lineTotal, category, description }) => ({
+                category, description, lineTotal,
+            }));
+            res.json(summary);
+            return;
+        }
+
         res.json(lineItems);
     } catch (err) { next(err); }
 });

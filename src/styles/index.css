@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'Public Sans', sans-serif;
+  min-height: max(884px, 100dvh);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.neo-noir-gradient {
+  background: linear-gradient(135deg, rgba(236, 91, 19, 0.1) 0%, rgba(34, 22, 16, 0.05) 100%);
+}

@@ -99,6 +99,19 @@ enum DistributionType {
   DIRECT
 }
 
+enum ClearanceTier {
+  TIER_1_FULL
+  TIER_2_CREATIVE
+  TIER_3_DEPARTMENT
+  TIER_4_LIMITED
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+}
+
 // ─── Reference Tables (Seeded, Read-Only for Users) ───────────────────────────
 
 model SagRateTable {
@@ -169,6 +182,7 @@ model Project {
   arcBeats          ArcBeat[]
   storyboardShots   StoryboardShot[]
   colorPalettes     ColorPalette[]
+  members           ProjectMember[]
 
   @@index([clerkUserId])
   @@map("projects")
@@ -441,6 +455,42 @@ model Location {
 
   @@index([projectId])
   @@map("locations")
+}
+
+// ─── Team Access Control ──────────────────────────────────────────────────────
+
+model ProjectMember {
+  id            String        @id @default(cuid())
+  projectId     String
+  clerkUserId   String?       // null until invite is accepted
+  inviteEmail   String
+  filmRole      String        // "Director", "DP", "Actor", etc.
+  department    String?       // "Camera", "Art", "Sound", etc.
+  clearanceTier ClearanceTier @default(TIER_4_LIMITED)
+  inviteStatus  InviteStatus  @default(PENDING)
+  inviteToken   String        @unique @default(cuid())
+  invitedAt     DateTime      @default(now())
+  acceptedAt    DateTime?
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, inviteEmail])
+  @@index([projectId])
+  @@index([clerkUserId])
+  @@index([inviteToken])
+  @@map("project_members")
+}
+
+// ─── User Profile (consent tracking + data rights) ────────────────────────────
+
+model UserProfile {
+  id                 String    @id @default(cuid())
+  clerkUserId        String    @unique
+  consentAcceptedAt  DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@map("user_profiles")
 }
 
 // ─── Color Psychology ──────────────────────────────────────────────────────────

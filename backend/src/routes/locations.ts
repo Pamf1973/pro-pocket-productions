@@ -3,6 +3,13 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { claudeAIService } from '../services/ClaudeAIService';
 import { createError } from '../middleware/errorHandler';
+import { getProjectTier, tierAtLeast, ClearanceTier } from '../middleware/auth';
+
+/** Strip contact info and financial fields for Tier 3-4 */
+function stripLocationSensitive(loc: Record<string, unknown>) {
+    const { contactName, contactEmail, contactPhone, dailyFee, ...safe } = loc;
+    return safe;
+}
 
 const router = Router();
 
@@ -27,10 +34,21 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { projectId } = req.query;
         if (!projectId) throw createError('projectId required', 400);
+
+        const tier = await getProjectTier(req.auth!.userId, String(projectId));
+        if (!tier) { res.status(403).json({ error: 'Forbidden' }); return; }
+
         const locations = await prisma.location.findMany({
             where: { projectId: String(projectId) },
             orderBy: { name: 'asc' },
         });
+
+        // Tier 3 and 4 — strip contact info and daily fee
+        if (!tierAtLeast(tier, ClearanceTier.TIER_2_CREATIVE)) {
+            res.json(locations.map((l) => stripLocationSensitive(l as unknown as Record<string, unknown>)));
+            return;
+        }
+
         res.json(locations);
     } catch (err) { next(err); }
 });

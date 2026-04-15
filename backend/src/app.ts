@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import path from 'path';
 import { env } from './config/env';
 
 // Routes
@@ -35,6 +36,10 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// ─── Static PWA Assets ────────────────────────────────────────────────────────
+// Serve manifest.json, sw.js, and icons
+app.use(express.static(path.join(__dirname, '../public')));
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => {

@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
-import { claudeAIService } from '../services/ClaudeAIService';
+import { aiService } from '../services/AIService';
 import { createError } from '../middleware/errorHandler';
 import { getProjectTier, tierAtLeast, ClearanceTier } from '../middleware/auth';
 
@@ -166,7 +166,7 @@ router.post('/ai-match', async (req: Request, res: Response, next: NextFunction)
             address: l.address ?? undefined
         }));
 
-        const matches = await claudeAIService.matchLocations({ sceneDescription, locations: availableLocs });
+        const matches = await aiService.matchLocations({ sceneDescription, locations: availableLocs });
         res.json({ matches });
     } catch (err) { next(err); }
 });

@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
-import { claudeAIService } from '../services/ClaudeAIService';
+import { aiService } from '../services/AIService';
 import { createError } from '../middleware/errorHandler';
 
 const router = Router();
@@ -79,7 +79,7 @@ router.post('/beats/ai-suggest', async (req: Request, res: Response, next: NextF
             genre: z.string().optional(),
         });
         const params = Schema.parse(req.body);
-        const beats = await claudeAIService.suggestArcBeats(params);
+        const beats = await aiService.suggestArcBeats(params);
         res.json({ beats });
     } catch (err) { next(err); }
 });

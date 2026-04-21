@@ -14,7 +14,7 @@ async function main() {
             console.log(`🎬 Pocket Productions API running on http://localhost:${PORT}`);
             console.log(`📋 Environment: ${env.NODE_ENV}`);
             console.log(`🔐 Auth bypass: ${env.BYPASS_AUTH ? 'ENABLED (dev mode)' : 'disabled'}`);
-            console.log(`🤖 Claude AI: ${env.ANTHROPIC_API_KEY ? 'configured' : 'NOT configured'}`);
+            console.log(`🤖 OpenRouter AI: ${env.OPENROUTER_API_KEY ? 'configured' : 'NOT configured'}`);
             console.log(`☁️  AWS S3: ${env.AWS_ACCESS_KEY_ID ? 'configured' : 'NOT configured'}`);
         });
     } catch (err) {

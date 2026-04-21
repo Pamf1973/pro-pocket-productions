@@ -34,8 +34,7 @@ export default function BottomNav({ onAdd, initialActive }: Props) {
     <nav
       className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-20 flex items-center justify-around px-4 pb-8 pt-3"
       style={{
-        background: 'rgba(10,15,26,0.95)',
-        backdropFilter: 'blur(12px)',
+        background: 'rgba(10,15,26,1)',
         borderTop: '1px solid rgba(255,255,255,0.06)',
       }}
     >
@@ -65,7 +64,7 @@ export default function BottomNav({ onAdd, initialActive }: Props) {
       <div className="relative -top-5">
         <button
           onClick={onAdd ?? (() => navigate('/new-project'))}
-          className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform border-4"
+          className="w-14 h-14 rounded-full flex items-center justify-center border-4"
           style={{
             background: 'linear-gradient(135deg, #ec5b13, #c0410a)',
             boxShadow: '0 8px 20px rgba(236,91,19,0.4)',

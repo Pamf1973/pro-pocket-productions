@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
-import { claudeAIService } from '../services/ClaudeAIService';
+import { aiService } from '../services/AIService';
 import { createError } from '../middleware/errorHandler';
 
 const router = Router();
@@ -82,7 +82,7 @@ router.post('/ai-generate', async (req: Request, res: Response, next: NextFuncti
             Schema.parse(req.body);
 
         // Pass just the parsed object to generateShotDescription
-        const generated = await claudeAIService.generateShotDescription({
+        const generated = await aiService.generateShotDescription({
             sceneContext,
             shotType,
             style,

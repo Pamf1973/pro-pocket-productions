@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { claudeAIService } from '../services/ClaudeAIService';
+import { aiService } from '../services/AIService';
 import { prisma } from '../lib/prisma';
 
 const router = Router();
@@ -14,7 +14,7 @@ router.post('/shot', async (req: Request, res: Response, next: NextFunction) => 
             style: z.string().optional(),
             characterColors: z.record(z.string(), z.string()).optional(),
         });
-        const result = await claudeAIService.generateShotDescription(Schema.parse(req.body));
+        const result = await aiService.generateShotDescription(Schema.parse(req.body));
         res.json({ result });
     } catch (err) { next(err); }
 });
@@ -32,7 +32,7 @@ router.post('/character-backstory', async (req: Request, res: Response, next: Ne
             logline: z.string().optional(),
             genre: z.string().optional(),
         });
-        const result = await claudeAIService.generateCharacterBackstory(Schema.parse(req.body));
+        const result = await aiService.generateCharacterBackstory(Schema.parse(req.body));
         res.json({ result });
     } catch (err) { next(err); }
 });
@@ -45,7 +45,7 @@ router.post('/arc-beats', async (req: Request, res: Response, next: NextFunction
             logline: z.string().min(10),
             genre: z.string().optional(),
         });
-        const beats = await claudeAIService.suggestArcBeats(Schema.parse(req.body));
+        const beats = await aiService.suggestArcBeats(Schema.parse(req.body));
         res.json({ beats });
     } catch (err) { next(err); }
 });
@@ -62,7 +62,7 @@ router.post('/location-match', async (req: Request, res: Response, next: NextFun
                 description: z.string().optional(),
             })),
         });
-        const matches = await claudeAIService.matchLocations(Schema.parse(req.body));
+        const matches = await aiService.matchLocations(Schema.parse(req.body));
         res.json({ matches });
     } catch (err) { next(err); }
 });
@@ -74,7 +74,7 @@ router.post('/analyze-script', async (req: Request, res: Response, next: NextFun
             scriptText: z.string().min(50),
         });
         const { scriptText } = Schema.parse(req.body);
-        const result = await claudeAIService.analyzeScript(scriptText);
+        const result = await aiService.analyzeScript(scriptText);
         res.json({ result });
     } catch (err) {
         next(err);
@@ -99,7 +99,7 @@ router.post('/budget-query', async (req: Request, res: Response, next: NextFunct
             sagEnabled: z.boolean().optional(),
         });
         const params = Schema.parse(req.body);
-        const result = await claudeAIService.queryBudget(params);
+        const result = await aiService.queryBudget(params);
         res.json({ result });
     } catch (err) {
         next(err);
@@ -117,7 +117,7 @@ router.post('/generate-image', async (req: Request, res: Response, next: NextFun
             mood: z.string().default('Neutral'),
         });
         const params = Schema.parse(req.body);
-        const result = await claudeAIService.generateStoryboardImage(params);
+        const result = await aiService.generateStoryboardImage(params);
         res.json(result);
     } catch (err) { next(err); }
 });
@@ -152,7 +152,7 @@ router.post('/analyze-and-save', async (req: Request, res: Response, next: NextF
         }
 
         // Analyze with Claude
-        const analysis = await claudeAIService.analyzeScript(scriptText);
+        const analysis = await aiService.analyzeScript(scriptText);
 
         // Only clear previous AI data when the user explicitly chose "Replace"
         if (replace) {
